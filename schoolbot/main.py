@@ -179,7 +179,7 @@ def user(message):
 
 @bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании")
 def c_changes(message):
-    if not login_user:
+    if login_user == False:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         sent = bot.send_message(message.chat.id, text="Отправьте изменения")
@@ -198,7 +198,7 @@ def file_changes(message):
 
 @bot.message_handler(func=lambda message: message.text == "Изменить пароль")
 def change_password(message):
-    if not login_user:
+    if login_user == False:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         sent = bot.send_message(message.chat.id, text="Введите текущий пароль")
@@ -227,7 +227,7 @@ def file_password_changes(message):
 
 @bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание')
 def request_schedule_lessons(message):
-    if not login_user:
+    if login_user == False:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         bot.send_message(message.chat.id, 'Отправьте фото нового расписания.')
@@ -258,9 +258,9 @@ def handle_photo_lessons(message):
         bot.send_message(message.chat.id, f'Произошла ошибка: {str(e)}')
 
 
-@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание звонков/jzy04B')
+@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание звонков')
 def request_schedule_rings(message):
-    if not login_user:
+    if login_user == False:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         bot.send_message(message.chat.id, 'Отправьте фото нового расписания звонков.')
