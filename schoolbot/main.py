@@ -6,22 +6,18 @@ import os
 from PIL import Image
 from io import BytesIO
 
-TOKEN_FILE_PATH = "C:/token.txt"
+TOKEN_FILE_PATH = "token.txt"
 USERS_FILE_PATH = "users.txt"
 LESSONS_FILE_PATH = "C:/Users/andre/OneDrive/Desktop/schoolbot/photos/lessons.jpeg"
 RINGS_FILE_PATH = "C:/Users/andre/OneDrive/Desktop/schoolbot/photos/rings.jpeg"
 CHANGES_FILE_PATH = "changes.txt"
 PASSWORD_FILE_PATH = "password.txt"
 
+login_user = False
+
 with open(TOKEN_FILE_PATH, 'r') as file:
     TOKEN = file.read()
 bot = telebot.TeleBot(token=TOKEN)
-
-
-@bot.message_handler(func=lambda message: True)
-def handle_unknown_command(message):
-    bot.send_message(message.chat.id,
-                     "Извините, бот не понимает эту команду. Пожалуйста, воспользуйтесь доступными функциями.")
 
 
 def corect_user(user_id, chat_id):
@@ -80,7 +76,9 @@ def functions(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Назад')
 def back_button(message):
+    global login_user
     functions(message)
+    login_user = False
 
 
 @bot.message_handler(func=lambda message: message.text == "Расписание уроков \U0001F4C5")
@@ -145,6 +143,7 @@ def start(message):
 
 def user(message):
     teacher_password = message.text
+    global login_user
     try:
         with open(PASSWORD_FILE_PATH, 'r') as file:
             currect_password = str(file.read())
@@ -154,12 +153,14 @@ def user(message):
     if teacher_password == currect_password:
         bot.send_message(message.chat.id, text="Успешный вход!")
 
+        login_user = True
+
         t_keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         t_buttons = [
-            types.KeyboardButton(text="Добавить изменения в расписании/nuzfOw"),
-            types.KeyboardButton(text="Изменить расписание/58Absu"),
-            types.KeyboardButton(text="Изменить расписание звонков/jzy04B"),
-            types.KeyboardButton(text="Изменить пароль/wlCTH3"),
+            types.KeyboardButton(text="Добавить изменения в расписании"),
+            types.KeyboardButton(text="Изменить расписание"),
+            types.KeyboardButton(text="Изменить расписание звонков"),
+            types.KeyboardButton(text="Изменить пароль"),
             types.KeyboardButton(text="Назад"),
         ]
 
@@ -176,10 +177,13 @@ def user(message):
         bot.send_message(message.chat.id, text="Неверный пароль")
 
 
-@bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании/nuzfOw")
+@bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании")
 def c_changes(message):
-    sent = bot.send_message(message.chat.id, text="Отправьте изменения")
-    bot.register_next_step_handler(sent, file_changes)
+    if not login_user:
+        bot.send_message(message.chat.id, text="Вы не вошли в систему!")
+    else:
+        sent = bot.send_message(message.chat.id, text="Отправьте изменения")
+        bot.register_next_step_handler(sent, file_changes)
 
 
 def file_changes(message):
@@ -192,10 +196,13 @@ def file_changes(message):
                 bot.send_message(c_id, text="Добавлены новые изменения в расписании!")
 
 
-@bot.message_handler(func=lambda message: message.text == "Изменить пароль/wlCTH3")
+@bot.message_handler(func=lambda message: message.text == "Изменить пароль")
 def change_password(message):
-    sent = bot.send_message(message.chat.id, text="Введите текущий пароль")
-    bot.register_next_step_handler(sent, verify_password)
+    if not login_user:
+        bot.send_message(message.chat.id, text="Вы не вошли в систему!")
+    else:
+        sent = bot.send_message(message.chat.id, text="Введите текущий пароль")
+        bot.register_next_step_handler(sent, verify_password)
 
 
 def verify_password(message):
@@ -218,10 +225,13 @@ def file_password_changes(message):
         bot.send_message(message.chat.id, text="Пароль успешно изменен!")
 
 
-@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание/58Absu')
+@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание')
 def request_schedule_lessons(message):
-    bot.send_message(message.chat.id, 'Отправьте фото нового расписания.')
-    bot.register_next_step_handler(message, handle_photo_lessons)
+    if not login_user:
+        bot.send_message(message.chat.id, text="Вы не вошли в систему!")
+    else:
+        bot.send_message(message.chat.id, 'Отправьте фото нового расписания.')
+        bot.register_next_step_handler(message, handle_photo_lessons)
 
 
 def handle_photo_lessons(message):
@@ -241,7 +251,7 @@ def handle_photo_lessons(message):
             image_path = os.path.join('photos', 'lessons.jpeg')
             image.save(image_path, 'JPEG', quality=95)
 
-            bot.send_message(message.chat.id, 'Фото расписания успешно сохранено в формате JPEG!')
+            bot.send_message(message.chat.id, 'Фото расписания успешно сохранено!')
         else:
             bot.send_message(message.chat.id, 'Пожалуйста, отправьте фото.')
     except Exception as e:
@@ -250,8 +260,11 @@ def handle_photo_lessons(message):
 
 @bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание звонков/jzy04B')
 def request_schedule_rings(message):
-    bot.send_message(message.chat.id, 'Отправьте фото нового расписания звонков.')
-    bot.register_next_step_handler(message, handle_photo_rings)
+    if not login_user:
+        bot.send_message(message.chat.id, text="Вы не вошли в систему!")
+    else:
+        bot.send_message(message.chat.id, 'Отправьте фото нового расписания звонков.')
+        bot.register_next_step_handler(message, handle_photo_rings)
 
 
 def handle_photo_rings(message):
@@ -271,7 +284,7 @@ def handle_photo_rings(message):
             image_path = os.path.join('photos', 'rings.jpeg')
             image.save(image_path, 'JPEG', quality=95)
 
-            bot.send_message(message.chat.id, 'Расписание звонков успешно сохранено в формате JPEG!')
+            bot.send_message(message.chat.id, 'Расписание звонков успешно сохранено!')
         else:
             bot.send_message(message.chat.id, 'Пожалуйста, отправьте фото.')
     except Exception as e:
