@@ -1,13 +1,31 @@
+# -*- coding: utf-8 -*-
+
 import telebot
 from telebot import types
+import os
+from PIL import Image
+from io import BytesIO
 
-with open("C:/token.txt", 'r') as file:
+TOKEN_FILE_PATH = "C:/token.txt"
+USERS_FILE_PATH = "users.txt"
+LESSONS_FILE_PATH = "C:/Users/andre/OneDrive/Desktop/schoolbot/photos/lessons.jpeg"
+RINGS_FILE_PATH = "C:/Users/andre/OneDrive/Desktop/schoolbot/photos/rings.jpeg"
+CHANGES_FILE_PATH = "changes.txt"
+PASSWORD_FILE_PATH = "password.txt"
+
+with open(TOKEN_FILE_PATH, 'r') as file:
     TOKEN = file.read()
 bot = telebot.TeleBot(token=TOKEN)
 
 
+@bot.message_handler(func=lambda message: True)
+def handle_unknown_command(message):
+    bot.send_message(message.chat.id,
+                     "Извините, бот не понимает эту команду. Пожалуйста, воспользуйтесь доступными функциями.")
+
+
 def corect_user(user_id, chat_id):
-    with open("users.txt", 'r') as file:
+    with open(USERS_FILE_PATH, 'r') as file:
         for ides in file:
             uid, cid = ides.strip().split()
             if user_id == uid and str(chat_id) == cid:
@@ -20,14 +38,14 @@ def hi_message(message):
     nickname = message.from_user.username
     chat_id = message.chat.id
     if corect_user(nickname, chat_id):
-        with open('users.txt', 'a') as file:
+        with open(USERS_FILE_PATH, 'a') as file:
             file.write(f"{nickname} {chat_id}\n")
 
     keyboard = types.ReplyKeyboardMarkup(
         row_width=1,
         resize_keyboard=True,
     )
-    functions_button = types.KeyboardButton(text="Функции")
+    functions_button = types.KeyboardButton(text="Функции\u2699")
     keyboard.add(functions_button)
     bot.send_message(
         message.chat.id,
@@ -36,7 +54,7 @@ def hi_message(message):
     )
 
 
-@bot.message_handler(func=lambda message: message.text == 'Функции')
+@bot.message_handler(func=lambda message: message.text == 'Функции\u2699')
 def functions(message):
     func_keyboard = types.ReplyKeyboardMarkup(
         row_width=1,
@@ -44,11 +62,12 @@ def functions(message):
     )
 
     buttons = [
-        types.KeyboardButton(text="Расписание уроков"),
-        types.KeyboardButton(text="Расписание звонков"),
-        types.KeyboardButton(text="Изменения в расписании"),
-        types.KeyboardButton(text="Информация о школе"),
-        types.KeyboardButton(text="Для учителей"),
+        types.KeyboardButton(text="Расписание уроков \U0001F4C5"),
+        types.KeyboardButton(text="Расписание звонков \U0001F514"),
+        types.KeyboardButton(text="Изменения в расписании \U0001F504"),
+        types.KeyboardButton(text="Информация о школе \U00002139"),
+        types.KeyboardButton(text="Оставить отзыв \U0001F4AC"),
+        types.KeyboardButton(text="Для учителей \U0001F469\u200D\U0001F3EB\u200C \U0001F468\u200D\U0001F3EB"),
     ]
     for but in buttons:
         func_keyboard.add(but)
@@ -64,67 +83,28 @@ def back_button(message):
     functions(message)
 
 
-@bot.message_handler(func=lambda message: message.text == "Расписание звонков")
+@bot.message_handler(func=lambda message: message.text == "Расписание уроков \U0001F4C5")
+def lesson_schedule(message):
+    with open(LESSONS_FILE_PATH, 'rb') as photo:
+        bot.send_photo(message.chat.id, photo)
+
+
+@bot.message_handler(func=lambda message: message.text == "Расписание звонков \U0001F514")
 def ring_schedule(message):
-    with open('C:/Users/andre/OneDrive/Desktop/schoolbot/photoes/rings.jpg', 'rb') as photo:
+    with open(RINGS_FILE_PATH, 'rb') as photo:
         bot.send_photo(message.chat.id, photo)
 
 
-@bot.message_handler(func=lambda message: message.text == "Расписание уроков")
-def lessons_schedule(message):
-    lessons_keyboard = types.ReplyKeyboardMarkup(
-        row_width=2,
-        resize_keyboard=True,
-    )
-    lessons_keyboard.add(types.KeyboardButton(text='Назад'))
-    for i in range(5, 12):
-        lessons_keyboard.add(types.KeyboardButton(text=f"{i}-е классы"))
-    bot.send_message(message.chat.id, text="Выберите класс", reply_markup=lessons_keyboard)
-
-
-@bot.message_handler(func=lambda message: message.text == "5-е классы")
-def schedule_5(message):
-    pass
-
-
-@bot.message_handler(func=lambda message: message.text == "6-е классы")
-def schedule_6(message):
-    pass
-
-
-@bot.message_handler(func=lambda message: message.text == "7-е классы")
-def schedule_7(message):
-    pass
-
-
-@bot.message_handler(func=lambda message: message.text in ["8-е классы",
-                                                           "9-е классы",
-                                                           "10-е классы",
-                                                           "11-е классы"])
+@bot.message_handler(func=lambda message: message.text == "Изменения в расписании \U0001F504")
 def schedule(message):
-    class_to_photo = {
-        "8-е классы": "8class.jpg",
-        "9-е классы": "9class.jpg",
-        "10-е классы": "10class.jpg",
-        "11-е классы": "11class.jpg"
-    }
-
-    photo_filename = class_to_photo.get(message.text)
-    if photo_filename:
-        photo_path = f"C:/Users/andre/OneDrive/Desktop/schoolbot/photoes/{photo_filename}"
-        with open(photo_path, 'rb') as photo:
-            bot.send_photo(message.chat.id, photo)
-    else:
-        bot.reply_to(message, "Расписание для этого класса не найдено.")
+    with open(CHANGES_FILE_PATH, 'r', encoding='windows-1251') as file:
+        changes = ""
+        for el in file:
+            changes += el
+    bot.send_message(message.chat.id, changes)
 
 
-@bot.message_handler(func=lambda message: message.text == "11-е классы")
-def schedule_11(message):
-    with open("C:/Users/andre/OneDrive/Desktop/schoolbot/photoes/11class.jpg", 'rb') as photo:
-        bot.send_photo(message.chat.id, photo)
-
-
-@bot.message_handler(func=lambda message: message.text == "Информация о школе")
+@bot.message_handler(func=lambda message: message.text == "Информация о школе \U00002139")
 def school_info(message):
     info_keyboard = types.InlineKeyboardMarkup()
     keyboards = {
@@ -141,37 +121,78 @@ def school_info(message):
     )
 
 
-@bot.message_handler(func=lambda message: message.text == "Для учителей")
-def teacher_login(message):
-    bot.send_message(message.chat.id, text="Введите пароль")
+@bot.message_handler(func=lambda message: message.text == "Оставить отзыв \U0001F4AC")
+def form(message):
+    sent = bot.send_message(message.chat.id, text="Напишите отзыв")
+    bot.register_next_step_handler(sent, review)
 
 
-@bot.message_handler(func=lambda message: message.text == "Изменения в расписании")
-def schedule(message):
-    with open('changes.txt', 'r', encoding='windows-1251') as file:
-        changes = ""
-        for el in file:
-            changes += el
-    bot.send_message(message.chat.id, changes)
+def review(message):
+    user_review = message.text
+    bot.send_message(
+        879423418,
+        text=f"Оставлен отзыв пользователем @{message.from_user.username}:\n {user_review}"
+    )
+    bot.send_message(message.chat.id, text="Спасибо за отзыв!")
 
 
-@bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании")
+@bot.message_handler(
+    func=lambda message: message.text == "Для учителей \U0001F469\u200D\U0001F3EB\u200C \U0001F468\u200D\U0001F3EB")
+def start(message):
+    sent = bot.send_message(message.chat.id, text="Введите пароль")
+    bot.register_next_step_handler(sent, user)
+
+
+def user(message):
+    teacher_password = message.text
+    try:
+        with open(PASSWORD_FILE_PATH, 'r') as file:
+            currect_password = str(file.read())
+    except FileNotFoundError:
+        bot.send_message(message.chat.id, text="Не найден файл пароля")
+
+    if teacher_password == currect_password:
+        bot.send_message(message.chat.id, text="Успешный вход!")
+
+        t_keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        t_buttons = [
+            types.KeyboardButton(text="Добавить изменения в расписании/nuzfOw"),
+            types.KeyboardButton(text="Изменить расписание/58Absu"),
+            types.KeyboardButton(text="Изменить расписание звонков/jzy04B"),
+            types.KeyboardButton(text="Изменить пароль/wlCTH3"),
+            types.KeyboardButton(text="Назад"),
+        ]
+
+        for but in t_buttons:
+            t_keyboard.add(but)
+
+        bot.send_message(
+            message.chat.id,
+            text="Функции для сотрудников",
+            reply_markup=t_keyboard
+        )
+
+    else:
+        bot.send_message(message.chat.id, text="Неверный пароль")
+
+
+@bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании/nuzfOw")
 def c_changes(message):
     sent = bot.send_message(message.chat.id, text="Отправьте изменения")
     bot.register_next_step_handler(sent, file_changes)
-    with open('users.txt', 'r') as file:
-        for elements in file:
-            login = elements.strip().split()[1]
-            bot.send_message(login, "Новые изменения добавлены")
 
 
 def file_changes(message):
-    with open('changes.txt', 'w') as file:
+    with open(CHANGES_FILE_PATH, 'w') as file:
         file.write(str(message.text))
         bot.send_message(message.chat.id, text="Успешно!")
+        with open(USERS_FILE_PATH, 'r') as file:
+            for accounts in file:
+                login, c_id = map(str, accounts.split())
+                bot.send_message(c_id, text="Добавлены новые изменения в расписании!")
 
 
-@bot.message_handler(func=lambda message: message.text == "Изменить пароль")
+@bot.message_handler(func=lambda message: message.text == "Изменить пароль/wlCTH3")
 def change_password(message):
     sent = bot.send_message(message.chat.id, text="Введите текущий пароль")
     bot.register_next_step_handler(sent, verify_password)
@@ -179,11 +200,10 @@ def change_password(message):
 
 def verify_password(message):
     try:
-        with open('password.txt', 'r') as file:
+        with open(PASSWORD_FILE_PATH, 'r') as file:
             current_password = file.read().strip()
     except FileNotFoundError:
         bot.send_message(message.chat.id, "Файл пароля не найден.")
-        return
 
     if message.text == current_password:
         sent = bot.send_message(message.chat.id, "Введите новый пароль")
@@ -193,45 +213,70 @@ def verify_password(message):
 
 
 def file_password_changes(message):
-    with open('password.txt', 'w') as file:
+    with open(PASSWORD_FILE_PATH, 'w') as file:
         file.write(str(message.text))
         bot.send_message(message.chat.id, text="Пароль успешно изменен!")
 
 
-@bot.message_handler(func=lambda message: True)
-def handle_login(message):
-    t_keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    t_buttons = [
-        types.KeyboardButton(text="Изменить расписание(pass)"),
-        types.KeyboardButton(text="Добавить изменения в расписании"),
-        types.KeyboardButton(text="Изменить расписание звонков(pass)"),
-        types.KeyboardButton(text="Изменить пароль"),
-        types.KeyboardButton(text="Назад"),
-    ]
-    for but in t_buttons:
-        t_keyboard.add(but)
+@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание/58Absu')
+def request_schedule_lessons(message):
+    bot.send_message(message.chat.id, 'Отправьте фото нового расписания.')
+    bot.register_next_step_handler(message, handle_photo_lessons)
 
-    ACCOUNTS = []
-    with open('password.txt', 'r') as file:
-        for line in file:
-            password = line
-            ACCOUNTS.append(str(password))
 
+def handle_photo_lessons(message):
     try:
-        password = message.text
-        if password in ACCOUNTS:
-            bot.send_message(
-                message.chat.id,
-                text="Функции для сотрудников",
-                reply_markup=t_keyboard
-            )
+        if message.photo:
+            file_id = message.photo[-1].file_id
+            file_info = bot.get_file(file_id)
+            file_path = file_info.file_path
+
+            old_photo_path = os.path.join('photos', 'lessons.jpeg')
+            if os.path.exists(old_photo_path):
+                os.remove(old_photo_path)
+
+            downloaded_file = bot.download_file(file_path)
+
+            image = Image.open(BytesIO(downloaded_file))
+            image_path = os.path.join('photos', 'lessons.jpeg')
+            image.save(image_path, 'JPEG', quality=95)
+
+            bot.send_message(message.chat.id, 'Фото расписания успешно сохранено в формате JPEG!')
         else:
-            bot.send_message(message.chat.id, text="Неверный пароль")
-    except ValueError:
-        bot.send_message(message.chat.id, text="Введите логин и пароль в правильном формате")
+            bot.send_message(message.chat.id, 'Пожалуйста, отправьте фото.')
     except Exception as e:
-        bot.send_message(message.chat.id, text=f"Произошла ошибка: {e}")
+        bot.send_message(message.chat.id, f'Произошла ошибка: {str(e)}')
+
+
+@bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание звонков/jzy04B')
+def request_schedule_rings(message):
+    bot.send_message(message.chat.id, 'Отправьте фото нового расписания звонков.')
+    bot.register_next_step_handler(message, handle_photo_rings)
+
+
+def handle_photo_rings(message):
+    try:
+        if message.photo:
+            file_id = message.photo[-1].file_id
+            file_info = bot.get_file(file_id)
+            file_path = file_info.file_path
+
+            old_photo_path = os.path.join('photos', 'rings.jpeg')
+            if os.path.exists(old_photo_path):
+                os.remove(old_photo_path)
+
+            downloaded_file = bot.download_file(file_path)
+
+            image = Image.open(BytesIO(downloaded_file))
+            image_path = os.path.join('photos', 'rings.jpeg')
+            image.save(image_path, 'JPEG', quality=95)
+
+            bot.send_message(message.chat.id, 'Расписание звонков успешно сохранено в формате JPEG!')
+        else:
+            bot.send_message(message.chat.id, 'Пожалуйста, отправьте фото.')
+    except Exception as e:
+        bot.send_message(message.chat.id, f'Произошла ошибка: {str(e)}')
 
 
 if __name__ == '__main__':
-    bot.infinity_polling()
+    bot.polling(non_stop=True)
