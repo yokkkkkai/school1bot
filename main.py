@@ -121,17 +121,22 @@ def school_info(message):
 
 @bot.message_handler(func=lambda message: message.text == "Оставить отзыв \U0001F4AC")
 def form(message):
-    sent = bot.send_message(message.chat.id, text="Напишите отзыв")
+    stop_keyboard = types.ReplyKeyboardMarkup()
+    stop_keyboard.add(types.KeyboardButton(text="Отмена"))
+    sent = bot.send_message(message.chat.id, text="Напишите отзыв", reply_markup=stop_keyboard)
     bot.register_next_step_handler(sent, review)
 
 
 def review(message):
     user_review = message.text
-    bot.send_message(
-        879423418,
-        text=f"Оставлен отзыв пользователем @{message.from_user.username}:\n {user_review}"
-    )
-    bot.send_message(message.chat.id, text="Спасибо за отзыв!")
+    if user_review != 'Отмена':
+        bot.send_message(
+            879423418,
+            text=f"Оставлен отзыв пользователем @{message.from_user.username}:\n {user_review}"
+        )
+        bot.send_message(message.chat.id, text="Спасибо за отзыв!")
+    else:
+        functions(message)
 
 
 @bot.message_handler(
