@@ -5,6 +5,7 @@ from telebot import types
 import os
 from PIL import Image
 from io import BytesIO
+import database_func
 
 TOKEN_FILE_PATH = "token.txt"
 USERS_FILE_PATH = "users.txt"
@@ -20,22 +21,21 @@ with open(TOKEN_FILE_PATH, 'r') as file:
 bot = telebot.TeleBot(token=TOKEN)
 
 
-def corect_user(user_id, chat_id):
-    with open(USERS_FILE_PATH, 'r') as file:
-        for ides in file:
-            uid, cid = ides.strip().split()
-            if user_id == uid and str(chat_id) == cid:
-                return False
+def correct_user(user_id, chat_id):
+    usernames = database_func.allnick()
+    chat_ids = database_func.allids()
+    if (user_id in usernames) and (chat_id in chat_ids):
+        return False
     return True
 
 
 @bot.message_handler(commands=['start'])
 def hi_message(message):
-    nickname = message.from_user.username
-    chat_id = message.chat.id
-    if corect_user(nickname, chat_id):
-        with open(USERS_FILE_PATH, 'a') as file:
-            file.write(f"{nickname} {chat_id}\n")
+    user_nickname = str(message.from_user.username)
+    chat_id = str(message.chat.id)
+
+    if correct_user(user_nickname, chat_id):
+        database_func.newuser(user_nickname, chat_id)
 
     keyboard = types.ReplyKeyboardMarkup(
         row_width=1,
@@ -135,6 +135,7 @@ def review(message):
             text=f"Оставлен отзыв пользователем @{message.from_user.username}:\n {user_review}"
         )
         bot.send_message(message.chat.id, text="Спасибо за отзыв!")
+        functions(message)
     else:
         functions(message)
 
@@ -195,10 +196,9 @@ def file_changes(message):
     with open(CHANGES_FILE_PATH, 'w') as file:
         file.write(str(message.text))
         bot.send_message(message.chat.id, text="Успешно!")
-        with open(USERS_FILE_PATH, 'r') as file:
-            for accounts in file:
-                login, c_id = map(str, accounts.split())
-                bot.send_message(c_id, text="Добавлены новые изменения в расписании!")
+        chatids = database_func.allids()
+        for c_id in chatids:
+            bot.send_message(c_id, text="Добавлены новые изменения в расписании!")
 
 
 @bot.message_handler(func=lambda message: message.text == "Изменить пароль")
