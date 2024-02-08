@@ -6,6 +6,7 @@ import os
 from PIL import Image
 from io import BytesIO
 import database_func
+import hashlib
 
 TOKEN_FILE_PATH = "token.txt"
 USERS_FILE_PATH = "users.txt"
@@ -95,9 +96,9 @@ def ring_schedule(message):
 
 @bot.message_handler(func=lambda message: message.text == "Изменения в расписании \U0001F504")
 def schedule(message):
-    with open(CHANGES_FILE_PATH, 'r', encoding='windows-1251') as file:
+    with open(CHANGES_FILE_PATH, 'r', encoding='windows-1251') as changes_file:
         changes = ""
-        for el in file:
+        for el in changes_file:
             changes += el
     bot.send_message(message.chat.id, changes)
 
@@ -149,14 +150,17 @@ def start(message):
 
 def user(message):
     teacher_password = message.text
+    hash_object = hashlib.sha256()
+    hash_object.update(teacher_password.encode())
+    hash_value = hash_object.hexdigest()
     global login_user
     try:
-        with open(PASSWORD_FILE_PATH, 'r') as file:
-            currect_password = str(file.read())
+        with open(PASSWORD_FILE_PATH, 'r') as password_file:
+            currect_password = str(password_file.read())
     except FileNotFoundError:
         bot.send_message(message.chat.id, text="Не найден файл пароля")
 
-    if teacher_password == currect_password:
+    if hash_value == currect_password:
         bot.send_message(message.chat.id, text="Успешный вход!")
 
         login_user = True
@@ -164,6 +168,7 @@ def user(message):
         t_keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         t_buttons = [
             types.KeyboardButton(text="Добавить изменения в расписании"),
+            types.KeyboardButton(text="Написать объявление"),
             types.KeyboardButton(text="Изменить расписание"),
             types.KeyboardButton(text="Изменить расписание звонков"),
             types.KeyboardButton(text="Изменить пароль"),
@@ -185,7 +190,7 @@ def user(message):
 
 @bot.message_handler(func=lambda message: message.text == "Добавить изменения в расписании")
 def c_changes(message):
-    if login_user == False:
+    if not login_user:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         sent = bot.send_message(message.chat.id, text="Отправьте изменения")
@@ -193,8 +198,8 @@ def c_changes(message):
 
 
 def file_changes(message):
-    with open(CHANGES_FILE_PATH, 'w') as file:
-        file.write(str(message.text))
+    with open(CHANGES_FILE_PATH, 'w') as changes_file:
+        changes_file.write(str(message.text))
         bot.send_message(message.chat.id, text="Успешно!")
         chatids = database_func.allids()
         for c_id in chatids:
@@ -203,21 +208,37 @@ def file_changes(message):
 
 @bot.message_handler(func=lambda message: message.text == "Изменить пароль")
 def change_password(message):
-    if login_user == False:
+    if not login_user:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         sent = bot.send_message(message.chat.id, text="Введите текущий пароль")
         bot.register_next_step_handler(sent, verify_password)
 
 
-def verify_password(message):
-    try:
-        with open(PASSWORD_FILE_PATH, 'r') as file:
-            current_password = file.read().strip()
-    except FileNotFoundError:
-        bot.send_message(message.chat.id, "Файл пароля не найден.")
+@bot.message_handler(func=lambda message: message.text == "Написать объявление")
+def hi(message):
+    if not login_user:
+        bot.send_message(message.chat.id, text="Вы не вошли в систему!")
+    else:
+        sent = bot.send_message(message.chat.id, text=f"Отправьте объявление")
+        bot.register_next_step_handler(sent, go)
 
-    if message.text == current_password:
+
+def go(message):
+    chat_ids = database_func.allids()
+    announcement = message.text
+    for chatid in chat_ids:
+        bot.send_message(chatid, announcement)
+
+
+def verify_password(message):
+    with open(PASSWORD_FILE_PATH, 'r') as password_file:
+        current_password = password_file.read().strip()
+    password = message.text
+    hash_object = hashlib.sha256()
+    hash_object.update(password.encode())
+    hash_value = hash_object.hexdigest()
+    if hash_value == current_password:
         sent = bot.send_message(message.chat.id, "Введите новый пароль")
         bot.register_next_step_handler(sent, file_password_changes)
     else:
@@ -225,14 +246,18 @@ def verify_password(message):
 
 
 def file_password_changes(message):
-    with open(PASSWORD_FILE_PATH, 'w') as file:
-        file.write(str(message.text))
+    hash_object = hashlib.sha256()
+    password = message.text
+    hash_object.update(password.encode())
+    hash_value = hash_object.hexdigest()
+    with open(PASSWORD_FILE_PATH, 'w') as password_file:
+        password_file.write(str(hash_value))
         bot.send_message(message.chat.id, text="Пароль успешно изменен!")
 
 
 @bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание')
 def request_schedule_lessons(message):
-    if login_user == False:
+    if not login_user:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         bot.send_message(message.chat.id, 'Отправьте фото нового расписания.')
@@ -265,7 +290,7 @@ def handle_photo_lessons(message):
 
 @bot.message_handler(func=lambda message: message.text and message.text == 'Изменить расписание звонков')
 def request_schedule_rings(message):
-    if login_user == False:
+    if not login_user:
         bot.send_message(message.chat.id, text="Вы не вошли в систему!")
     else:
         bot.send_message(message.chat.id, 'Отправьте фото нового расписания звонков.')
